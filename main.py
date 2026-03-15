@@ -1,15 +1,16 @@
+from flask import Flask, request, jsonify
 import requests
 import re
-import random
+
+app = Flask(__name__)
 
 def extract_otp(text):
     otp = re.findall(r'\b\d{4,8}\b', text)
-    if otp:
-        return otp[0]
-    return None
+    return otp[0] if otp else None
 
 
-def handler(request):
+@app.route("/mail")
+def mail():
 
     action = request.args.get("action")
     key = request.args.get("key")
@@ -17,25 +18,17 @@ def handler(request):
     # NEW EMAIL
     if action == "new":
 
-        apis = [
-            "https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1",
-            "https://api.tempmail.lol/generate"
-        ]
+        r = requests.get(
+            "https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1"
+        )
 
-        api = random.choice(apis)
+        email = r.json()[0]
 
-        if "1secmail" in api:
-            r = requests.get(api).json()
-            email = r[0]
-
-        else:
-            r = requests.get(api).json()
-            email = r["address"]
-
-        return {
+        return jsonify({
             "status": "success",
             "email": email
-        }
+        })
+
 
     # CHECK INBOX
     if key == "semy" and action:
@@ -45,11 +38,12 @@ def handler(request):
 
         r = requests.get(
             f"https://www.1secmail.com/api/v1/?action=getMessages&login={login}&domain={domain}"
-        ).json()
+        )
 
         messages = []
 
-        for msg in r:
+        for msg in r.json():
+
             msg_id = msg["id"]
 
             mail = requests.get(
@@ -66,11 +60,11 @@ def handler(request):
                 "text": text
             })
 
-        return {
+        return jsonify({
             "email": email,
             "messages": messages
-        }
+        })
 
-    return {
+    return jsonify({
         "error": "invalid request"
-    }
+    })
