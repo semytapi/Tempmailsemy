@@ -5,8 +5,8 @@ import re
 app = Flask(__name__)
 
 def extract_otp(text):
-    otp = re.findall(r'\b\d{4,8}\b', text)
-    return otp[0] if otp else None
+    match = re.findall(r'\b\d{4,8}\b', text)
+    return match[0] if match else None
 
 
 @app.route("/mail")
@@ -15,7 +15,7 @@ def mail():
     action = request.args.get("action")
     key = request.args.get("key")
 
-    # NEW EMAIL
+    # Generate new email
     if action == "new":
 
         r = requests.get(
@@ -30,7 +30,7 @@ def mail():
         })
 
 
-    # CHECK INBOX
+    # Check inbox
     if key == "semy" and action:
 
         email = action
@@ -56,8 +56,7 @@ def mail():
             messages.append({
                 "from": mail.get("from"),
                 "subject": mail.get("subject"),
-                "otp": otp,
-                "text": text
+                "otp": otp
             })
 
         return jsonify({
@@ -65,6 +64,5 @@ def mail():
             "messages": messages
         })
 
-    return jsonify({
-        "error": "invalid request"
-    })
+
+    return jsonify({"error": "invalid request"})
