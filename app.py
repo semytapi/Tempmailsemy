@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import requests
+import json
 
 app = Flask(__name__)
 
@@ -24,35 +25,33 @@ def mail():
                 timeout=10
             )
 
-            data = r.json()
-            email = data[0]
+            data = json.loads(r.text)
 
             return jsonify({
-                "status": "success",
-                "email": email
+                "email": data[0]
             })
 
 
         # CHECK INBOX
         if key == "semy" and action:
 
-            email = action
-            login, domain = email.split("@")
+            login, domain = action.split("@")
 
             r = requests.get(
                 f"https://www.1secmail.com/api/v1/?action=getMessages&login={login}&domain={domain}",
                 timeout=10
             )
 
+            data = json.loads(r.text)
+
             return jsonify({
-                "email": email,
-                "messages": r.json()
+                "email": action,
+                "messages": data
             })
+
 
         return jsonify({"error": "invalid request"})
 
 
     except Exception as e:
-        return jsonify({
-            "error": str(e)
-        })
+        return jsonify({"error": str(e)})
