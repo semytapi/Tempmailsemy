@@ -1,12 +1,11 @@
 from flask import Flask, request, jsonify
 import requests
-import re
 
 app = Flask(__name__)
 
-def extract_otp(text):
-    match = re.findall(r'\b\d{4,8}\b', text)
-    return match[0] if match else None
+@app.route("/")
+def home():
+    return "TempMail API Running"
 
 
 @app.route("/mail")
@@ -15,54 +14,45 @@ def mail():
     action = request.args.get("action")
     key = request.args.get("key")
 
-    # Generate new email
-    if action == "new":
+    try:
 
-        r = requests.get(
-            "https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1"
-        )
+        # NEW EMAIL
+        if action == "new":
 
-        email = r.json()[0]
+            r = requests.get(
+                "https://www.1secmail.com/api/v1/?action=genRandomMailbox&count=1",
+                timeout=10
+            )
 
-        return jsonify({
-            "status": "success",
-            "email": email
-        })
+            data = r.json()
+            email = data[0]
 
-
-    # Check inbox
-    if key == "semy" and action:
-
-        email = action
-        login, domain = email.split("@")
-
-        r = requests.get(
-            f"https://www.1secmail.com/api/v1/?action=getMessages&login={login}&domain={domain}"
-        )
-
-        messages = []
-
-        for msg in r.json():
-
-            msg_id = msg["id"]
-
-            mail = requests.get(
-                f"https://www.1secmail.com/api/v1/?action=readMessage&login={login}&domain={domain}&id={msg_id}"
-            ).json()
-
-            text = mail.get("body", "")
-            otp = extract_otp(text)
-
-            messages.append({
-                "from": mail.get("from"),
-                "subject": mail.get("subject"),
-                "otp": otp
+            return jsonify({
+                "status": "success",
+                "email": email
             })
 
+
+        # CHECK INBOX
+        if key == "semy" and action:
+
+            email = action
+            login, domain = email.split("@")
+
+            r = requests.get(
+                f"https://www.1secmail.com/api/v1/?action=getMessages&login={login}&domain={domain}",
+                timeout=10
+            )
+
+            return jsonify({
+                "email": email,
+                "messages": r.json()
+            })
+
+        return jsonify({"error": "invalid request"})
+
+
+    except Exception as e:
         return jsonify({
-            "email": email,
-            "messages": messages
+            "error": str(e)
         })
-
-
-    return jsonify({"error": "invalid request"})
