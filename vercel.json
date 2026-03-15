@@ -1,0 +1,5 @@
+{
+  "routes": [
+    { "src": "/mail", "dest": "main.py" }
+  ]
+}
